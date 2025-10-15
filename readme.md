@@ -11,7 +11,7 @@ This repository contains practical examples of different coin implementations in
 ##this folder will be updated over time and is not yet complete
 
 
-##Brief description 
+## Brief description of Coins On Sui 
 Coins on Sui are fungible assets each coin type defines a unique currency.
 They’re created with coin::create_currency, which issues a TreasuryCap for mint/burn control and optional metadata for name, symbol, and icon.
 A coin can be inflationary (keep TreasuryCap) or deflationary (destroy or freeze TreasuryCap).
