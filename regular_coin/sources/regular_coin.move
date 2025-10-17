@@ -1,40 +1,33 @@
-/// Implements a coin with a deflationary supply. Upon initialization, mint the
-/// total supply and destroy TreasuryCap to make the supply deflationary.
-module regular_coin::regular_coin;
+module 0x0::currency;
 
-use sui::coin::{Self, Coin, TreasuryCap};
-use sui::url;
+use sui::coin::Coin;
+use sui::coin_registry::{Self, CoinRegistry};
 
-/// Total supply of the coin is 1B (with 6 decimals).
-const TOTAL_SUPPLY: u64 = 1_000_000_000_000_000;
+// Total supply of the `DEFLATIONARY_SUPPLY` coin is 1B (with 6 decimals).
+const TOTAL_SUPPLY: u64 = 1000000000_000000; 
 
-/// One-time witness for coin creation
-public struct REGULAR_COIN has drop {}
+// The type identifier of coin. The coin will have a type
+// tag of kind: `Coin<package_object::currency::MyCoin>`
+public struct MyCoin has key { id: UID }
 
-/// Initialize the coin with fixed supply
-fun init(witness: REGULAR_COIN, ctx: &mut TxContext) {
-    let (mut treasury_cap, metadata) = coin::create_currency(
-        witness,
-        6,
-        b"REGULAR",
-        b"Regular Coin",
-        b"Standard Unregulated Coin",
-        option::some(url::new_unsafe_from_bytes(b"https://example.com/regular_coin.png")),
-        ctx
+#[allow(lint(self_transfer))]
+/// Creates a new currency with a non-OTW proof of uniqueness.
+public fun new_currency(registry: &mut CoinRegistry, ctx: &mut TxContext): Coin<MyCoin> {
+    let (mut currency, mut treasury_cap) = coin_registry::new_currency(
+        registry,
+        6, // Decimals
+        b"MyCoin".to_string(), // Symbol
+        b"My Coin".to_string(), // Name
+        b"Standard Unregulated Coin".to_string(), // Description
+        b"https://example.com/my_coin.png".to_string(), // Icon URL
+        ctx,
     );
 
-    // Mint total supply
     let total_supply = treasury_cap.mint(TOTAL_SUPPLY, ctx);
+    currency.make_supply_burn_only(treasury_cap);
 
-    // Freeze metadata and treasury cap to prevent minting
-    transfer::public_freeze_object(metadata);
-    transfer::public_freeze_object(treasury_cap);
+    let metadata_cap = currency.finalize(ctx);
+    transfer::public_transfer(metadata_cap, ctx.sender());
 
-    // Send all coins to deployer
-    transfer::public_transfer(total_supply, ctx.sender());
-}
-
-/// Burn coins to reduce supply
-public fun burn(treasury: &mut TreasuryCap<REGULAR_COIN>, coin: Coin<REGULAR_COIN>) {
-    coin::burn(treasury, coin);
+    total_supply
 }
